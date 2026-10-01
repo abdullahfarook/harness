@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-hermes
+  labels:
+    {{- include "stack.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ .Release.Name }}-hermes
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: hermes
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: hermes
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/arch: {{ .Values.architecture }}}
+      initContainers:
+        - name: reconcile-config
+          image: {{ .Values.hermes.image }}
+          command: [/opt/hermes/.venv/bin/python, /config/prepare_hermes.py]
+          env:
+            - {name: ALLOW_SMALL_CONTEXT, value: {{ .Values.hermes.allowSmallContext | quote }}}
+            - {name: SMALL_CONTEXT_LENGTH, value: {{ .Values.llm.context | quote }}}
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          volumeMounts:
+            - {name: data, mountPath: /opt/data}
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: compat, mountPath: /compat}
+      containers:
+        - name: hermes
+          image: {{ .Values.hermes.image }}
+          args: [gateway, run]
+          env:
+            - {name: HERMES_HOME, value: /opt/data}
+            - {name: API_SERVER_ENABLED, value: "true"}
+            - {name: API_SERVER_HOST, value: 0.0.0.0}
+            - {name: API_SERVER_PORT, value: "8642"}
+            - name: API_SERVER_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: api-key}}
+            - {name: OPENAI_BASE_URL, value: "http://{{ .Release.Name }}-llm:8080/v1"}
+            - {name: OPENAI_API_KEY, value: local-inference}
+          ports: [{name: http, containerPort: 8642}]
+          startupProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10, failureThreshold: 120}
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 30, failureThreshold: 10}
+          resources:
+            {{- toYaml .Values.hermes.resources | nindent 12 }}
+          volumeMounts:
+            - {name: data, mountPath: /opt/data}
+            {{- if .Values.hermes.allowSmallContext }}
+            - {name: compat, mountPath: /opt/hermes/agent/model_metadata.py, subPath: model_metadata.py, readOnly: true}
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: {{ .Release.Name }}-hermes-data}
+        - name: config
+          configMap: {name: {{ .Release.Name }}-config}
+        - name: compat
+          emptyDir: {}

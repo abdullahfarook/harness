@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-smoke
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: test
+spec:
+  automountServiceAccountToken: false
+  restartPolicy: Never
+  activeDeadlineSeconds: {{ .Values.tests.timeoutSeconds }}
+  nodeSelector: {kubernetes.io/arch: {{ .Values.architecture }}}
+  securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000}
+  containers:
+    - name: smoke
+      image: {{ .Values.utilityImage }}
+      command: [python, -u, /scripts/smoke.py]
+      env:
+        - {name: LLM_URL, value: "http://{{ .Release.Name }}-llm:8080"}
+        - {name: HERMES_URL, value: "http://{{ .Release.Name }}-hermes:8642"}
+        - {name: UI_URL, value: "http://{{ .Release.Name }}-webui:8080"}
+        - {name: MODEL_ALIAS, value: {{ .Values.llm.model.alias | quote }}}
+        - {name: MODEL_CONTEXT, value: {{ .Values.llm.context | quote }}}
+        - name: API_SERVER_KEY
+          valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: api-key}}
+        - name: WEBUI_ADMIN_EMAIL
+          valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: admin-email}}
+        - name: WEBUI_ADMIN_PASSWORD
+          valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: admin-password}}
+      resources:
+        requests: {cpu: 50m, memory: 64Mi}
+        limits: {cpu: 250m, memory: 256Mi}
+      securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+      volumeMounts: [{name: config, mountPath: /scripts, readOnly: true}]
+  volumes:
+    - name: config
+      configMap: {name: {{ .Release.Name }}-config}

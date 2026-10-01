@@ -1,0 +1,7 @@
+kube.config
+*.kubeconfig
+.local/
+artifacts/
+__pycache__/
+*.pyc
+docs/hermes-deployment-review.html

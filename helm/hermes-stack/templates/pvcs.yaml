@@ -1,0 +1,17 @@
+{{- range $component := list "llm" "hermes" "webui" }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Release.Name }}-{{ $component }}-data
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    {{- include "stack.labels" $ | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ $.Values.storageClass | quote }}
+  resources:
+    requests:
+      storage: {{ (index $.Values $component).persistence.size }}
+{{- end }}

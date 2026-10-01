@@ -1,0 +1,37 @@
+architecture: arm64
+storageClass: longhorn
+existingSecret: hermes-stack-auth
+llm:
+  image: ghcr.io/ggml-org/llama.cpp:server@sha256:c859e69b523f265fbdbffda1afee2ac9eedfe90971983dbf1cb9ecbb2f04869b
+  context: 8192
+  parallel: 1
+  threads: 2
+  batch: 512
+  model:
+    repo: NousResearch/Hermes-3-Llama-3.2-3B-GGUF
+    revision: 3cd927095d8cbab12c743f932aa63b6f7bbfa141
+    file: Hermes-3-Llama-3.2-3B.Q4_K_M.gguf
+    sha256: 91776fe0f6cd7483d9d5e06162fdd1f8f0262c15ced269791b4d96a655e8a5a2
+    alias: Hermes-3-Llama-3.2-3B
+  persistence: {size: 5Gi}
+  resources:
+    requests: {cpu: 1000m, memory: 2Gi}
+    limits: {cpu: "2", memory: 4Gi}
+hermes:
+  allowSmallContext: true
+  image: nousresearch/hermes-agent:v2026.9.14@sha256:011f2e232f119a9601cf6525f7542921d758703c7771ce2f7b639a07fa8640d1
+  maxTurns: 8
+  runBudgetSeconds: 600
+  persistence: {size: 5Gi}
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1536Mi}
+webui:
+  image: ghcr.io/open-webui/open-webui:v0.9.6@sha256:c439f77bbe0e004765f6536be0362397d4d20b62d224420f4319600c1bda1d0b
+  persistence: {size: 5Gi}
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {cpu: "1", memory: 2Gi}
+utilityImage: python:3.12-alpine@sha256:34d4d54d6f68a1980ad02433a5078d998ab394d55c97d953efa50b442135baf2
+tests:
+  timeoutSeconds: 1800

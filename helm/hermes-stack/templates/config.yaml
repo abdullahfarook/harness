@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "stack.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    _config_version: 44
+    model:
+      provider: custom
+      base_url: http://{{ .Release.Name }}-llm:8080/v1
+      default: {{ .Values.llm.model.alias }}
+      api_mode: chat_completions
+      context_length: {{ .Values.llm.context }}
+      api_key: local-inference
+    agent:
+      max_turns: {{ .Values.hermes.maxTurns }}
+      run_budget_seconds: {{ .Values.hermes.runBudgetSeconds }}
+      tool_use_enforcement: true
+      execution_guidance: true
+    toolsets: [terminal]
+    platform_toolsets:
+      api_server: [terminal]
+    terminal:
+      backend: local
+      cwd: /opt/data
+    compression:
+      enabled: true
+      threshold: 0.80
+    tool_loop_guardrails:
+      warnings_enabled: true
+      hard_stop_enabled: true
+      warn_after:
+        exact_failure: 2
+        same_tool_failure: 3
+        idempotent_no_progress: 2
+      hard_stop_after:
+        exact_failure: 5
+        same_tool_failure: 8
+        idempotent_no_progress: 5
+  download.py: |
+{{ .Files.Get "files/download.py" | indent 4 }}
+  prepare_hermes.py: |
+{{ .Files.Get "files/prepare_hermes.py" | indent 4 }}
+  smoke.py: |
+{{ .Files.Get "files/smoke.py" | indent 4 }}

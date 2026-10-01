@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-llm
+  labels:
+    {{- include "stack.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: llm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: llm
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/arch: {{ .Values.architecture }}}
+      securityContext: {runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000}
+      initContainers:
+        - name: download-model
+          image: {{ .Values.utilityImage }}
+          command: [python, /scripts/download.py]
+          env:
+            - {name: MODEL_REPO, value: {{ .Values.llm.model.repo | quote }}}
+            - {name: MODEL_REVISION, value: {{ .Values.llm.model.revision | quote }}}
+            - {name: MODEL_FILE, value: {{ .Values.llm.model.file | quote }}}
+            - {name: MODEL_SHA256, value: {{ .Values.llm.model.sha256 | quote }}}
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: data, mountPath: /models}
+            - {name: config, mountPath: /scripts, readOnly: true}
+      containers:
+        - name: llm
+          image: {{ .Values.llm.image }}
+          args:
+            - --model
+            - /models/{{ .Values.llm.model.file }}
+            - --alias
+            - {{ .Values.llm.model.alias | quote }}
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8080"
+            - --ctx-size
+            - {{ .Values.llm.context | quote }}
+            - --parallel
+            - {{ .Values.llm.parallel | quote }}
+            - --threads
+            - {{ .Values.llm.threads | quote }}
+            - --threads-batch
+            - {{ .Values.llm.threads | quote }}
+            - --batch-size
+            - {{ .Values.llm.batch | quote }}
+            - --ubatch-size
+            - {{ .Values.llm.batch | quote }}
+            - --jinja
+            - --min-p
+            - "0.0"
+            - --temp
+            - "1.0"
+            - --top-p
+            - "0.95"
+          ports: [{name: http, containerPort: 8080}]
+          startupProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10, failureThreshold: 120}
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 30, failureThreshold: 10}
+          resources:
+            {{- toYaml .Values.llm.resources | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: data, mountPath: /models}]
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: {{ .Release.Name }}-llm-data}
+        - name: config
+          configMap: {name: {{ .Release.Name }}-config}

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-webui
+  labels:
+    {{- include "stack.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: webui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: webui
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/arch: {{ .Values.architecture }}}
+      containers:
+        - name: webui
+          image: {{ .Values.webui.image }}
+          env:
+            - {name: OPENAI_API_BASE_URL, value: "http://{{ .Release.Name }}-hermes:8642/v1"}
+            - name: OPENAI_API_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: api-key}}
+            - {name: ENABLE_OLLAMA_API, value: "false"}
+            - {name: WEBUI_AUTH, value: "true"}
+            - {name: ENABLE_SIGNUP, value: "false"}
+            - {name: ENABLE_PERSISTENT_CONFIG, value: "false"}
+            - {name: ENABLE_TITLE_GENERATION, value: "false"}
+            - {name: ENABLE_TAGS_GENERATION, value: "false"}
+            - {name: ENABLE_FOLLOW_UP_GENERATION, value: "false"}
+            - {name: ENABLE_VERSION_UPDATE_CHECK, value: "false"}
+            - {name: OFFLINE_MODE, value: "true"}
+            - {name: RAG_EMBEDDING_ENGINE, value: openai}
+            - {name: WEBUI_ADMIN_NAME, value: Hermes Administrator}
+            - name: WEBUI_ADMIN_EMAIL
+              valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: admin-email}}
+            - name: WEBUI_ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: admin-password}}
+            - name: WEBUI_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.existingSecret }}, key: webui-secret}}
+          ports: [{name: http, containerPort: 8080}]
+          startupProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10, failureThreshold: 120}
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 30, failureThreshold: 10}
+          resources:
+            {{- toYaml .Values.webui.resources | nindent 12 }}
+          volumeMounts: [{name: data, mountPath: /app/backend/data}]
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: {{ .Release.Name }}-webui-data}
