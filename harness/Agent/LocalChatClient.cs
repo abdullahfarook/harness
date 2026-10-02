@@ -5,20 +5,21 @@ using Microsoft.Extensions.AI;
 
 namespace Harness.Agent;
 
-public sealed class LfmChatClient(LfmThinkingModel model, Action<string> record, int maxTokens = 1536) : IChatClient
+public sealed class LocalChatClient(ILocalTextModel model, Action<string> record, int maxTokens = 1536) : IChatClient
 {
     public async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
         List<ChatMessage> history = messages.ToList();
         List<AIFunction> tools = options?.Tools?.OfType<AIFunction>().ToList() ?? [];
-        AgentRequest request=AgentPrompt.Build(history,tools);
+        AgentRequest request=AgentPrompt.Build(history,tools,model is LfmThinkingModel);
         tools=request.Tools;
-        record(JsonSerializer.Serialize(new { kind="model_request",tools=tools.Select(t=>t.Name).ToArray(),messages=history.Count }));
+        record(JsonSerializer.Serialize(new { timestamp=DateTimeOffset.UtcNow,kind="model_request",model=model.ModelId,tools=tools.Select(t=>t.Name).ToArray(),messages=history.Count }));
         List<ChatMessage> prompt = request.Messages;
         for (int attempt = 0; attempt < 3; attempt++)
         {
+            System.Diagnostics.Stopwatch timer=System.Diagnostics.Stopwatch.StartNew();
             string output = await model.GenerateAsync(prompt,maxTokens,cancellationToken);
-            record(JsonSerializer.Serialize(new { kind="model_response", model="LFM2.5-1.2B-Thinking-ONNX", output }));
+            record(JsonSerializer.Serialize(new { timestamp=DateTimeOffset.UtcNow,kind="model_response",model=model.ModelId,output,stage=tools.Count==0 ? "summary" : "decision",seconds=timer.Elapsed.TotalSeconds,attempt }));
             try
             {
                 ParsedAction action = ActionProtocol.Parse(output,tools.Select(t => t.Name).ToArray(),request.HasClassification);
@@ -31,10 +32,10 @@ public sealed class LfmChatClient(LfmThinkingModel model, Action<string> record,
                     AgentPrompt.ValidateSummary(action.Final!,history);
                     response = new(ChatRole.Assistant,action.Final!);
                 }
-                return new(response) { ModelId="LiquidAI/LFM2.5-1.2B-Thinking-ONNX" };
+                return new(response) { ModelId=model.ModelId };
             }
             catch (InvalidDataException exception) when (attempt < 2)
-            { prompt.Add(new(ChatRole.User,request.HasClassification && tools.Count==0 ? $"Correct the summary: {exception.Message} Return factual summary text, not commentary." : $"Invalid response: {exception.Message} Use a correctly formed native tool call with only literal parameters. A no-parameter call is <|tool_call_start|>[classify()]<|tool_call_end|>.")); }
+            { prompt.Add(new(ChatRole.User,request.HasClassification && tools.Count==0 ? $"Correct the summary: {exception.Message} Return factual summary text, not commentary." : $"Invalid response: {exception.Message} Return one JSON object with tool and arguments fields using only available tools.")); }
         }
         throw new InvalidDataException("Invalid model action after bounded retries.");
     }

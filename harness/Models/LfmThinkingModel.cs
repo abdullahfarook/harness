@@ -6,8 +6,9 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace Harness.Models;
 
-public sealed class LfmThinkingModel : IDisposable
+public sealed class LfmThinkingModel : ILocalTextModel
 {
+    public string ModelId=>"LiquidAI/LFM2.5-1.2B-Thinking-ONNX";
     private readonly InferenceSession session;
     private readonly NativeTokenizer tokenizer;
     private readonly int eos;

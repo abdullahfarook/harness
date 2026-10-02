@@ -1,5 +1,7 @@
 # Local website summary bot
 
+**Historical LFM baseline.** The default brain is now Gemma 4 E2B ONNX; use the current [Gemma setup and timing report](gemma-website-summary-validation.md). Commands and model paths below describe the earlier LFM version.
+
 ## Setup and run
 
 Validated on Windows x64 with .NET SDK 10.0.401. Install .NET 10, PowerShell and curl.exe, then run from the repository root:

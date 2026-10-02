@@ -2,7 +2,7 @@
 
 ## Local website summary bot (C#)
 
-The separate `harness/` application uses Microsoft Agent Harness, local LFM thinking inference, native Laya decisions, and a visible Chromium cursor. See [setup and validation](docs/website-summary-validation.md).
+The separate `harness/` application uses Microsoft Agent Harness, local **Gemma 4 E2B ONNX** inference (thinking disabled), native Laya decisions, and a visible Chromium cursor. See [Gemma setup, validation and timings](docs/gemma-website-summary-validation.md). The [earlier LFM validation](docs/website-summary-validation.md) is retained for comparison.
 
 ```powershell
 pwsh -File scripts/Setup-WebsiteBot.ps1

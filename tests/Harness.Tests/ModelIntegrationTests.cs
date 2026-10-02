@@ -8,6 +8,19 @@ namespace Harness.Tests;
 [Category("ModelIntegration")]
 public class ModelIntegrationTests
 {
+    [Test, Explicit("Runs real Gemma 4 E2B Q4 ONNX weights on CPU")]
+    public async Task GemmaRealInference()
+    {
+        List<GenerationTiming> measurements=[];
+        using GemmaModel model=new(ModelAssets.Load(Path.Combine(Root,"gemma"),"gemma"),timing:measurements.Add);
+        using CancellationTokenSource timeout=new(TimeSpan.FromMinutes(4));
+        string answer=await model.GenerateAsync([new(ChatRole.User,"What is 6 times 7? Answer briefly.")],512,timeout.Token);
+        Assert.That(answer.Trim(),Is.EqualTo("42"));
+        Assert.That(measurements,Has.Count.EqualTo(1));
+        Assert.That(measurements[0].GeneratedTokens,Is.GreaterThan(0));
+        Assert.That(measurements[0].GenerationSeconds,Is.GreaterThanOrEqualTo(measurements[0].PrefillSeconds));
+        TestContext.Out.WriteLine(System.Text.Json.JsonSerializer.Serialize(measurements[0]));
+    }
     private static string Root => Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../../../.local/website-models"));
     [Test, Explicit("Compares all real typed outputs to the independent receptron package")]
     public void LayaTypedParity()

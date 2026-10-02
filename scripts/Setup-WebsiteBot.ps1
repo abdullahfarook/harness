@@ -1,11 +1,13 @@
-param([string]$ModelRoot = "$PSScriptRoot/../.local/website-models", [switch]$SkipBrowser)
+param([string]$ModelRoot = "$PSScriptRoot/../.local/website-models", [switch]$SkipBrowser, [ValidateSet('gemma','lfm','all')][string]$Brain='gemma')
 $ErrorActionPreference = 'Stop'
 $ModelRoot = [IO.Path]::GetFullPath($ModelRoot)
 $bundles = @(
+    @{ Name='gemma'; Repo='onnx-community/gemma-4-E2B-it-ONNX'; Revision='9f4bef82ea6e296bc69f8a2f5939f73af81b07a6'; Files=@('onnx/decoder_model_merged_q4.onnx','onnx/decoder_model_merged_q4.onnx_data','onnx/embed_tokens_q4.onnx','onnx/embed_tokens_q4.onnx_data','config.json','generation_config.json','tokenizer.json','tokenizer_config.json') },
     @{ Name='lfm'; Repo='LiquidAI/LFM2.5-1.2B-Thinking-ONNX'; Revision='e7fe61974e3a167dff77c5722db9a1cb7b57140f'; Files=@('onnx/model_q4.onnx','onnx/model_q4.onnx_data','config.json','generation_config.json','tokenizer.json','tokenizer_config.json') },
     @{ Name='laya'; Repo='receptron/laya-onnx'; Revision='68f27dfe5a27a54fb2b1fefc432f43f972e90868'; Files=@('laya.onnx','laya.onnx.data','laya_config.json','tokenizer/tokenizer.json','tokenizer/tokenizer_config.json') }
 )
 foreach ($bundle in $bundles) {
+    if ($bundle.Name -ne 'laya' -and $Brain -ne 'all' -and $bundle.Name -ne $Brain) { continue }
     $records = @()
     foreach ($file in $bundle.Files) {
         $target = Join-Path (Join-Path $ModelRoot $bundle.Name) $file
