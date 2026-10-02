@@ -2,7 +2,7 @@
 
 ## Local website summary bot (C#)
 
-The separate `harness/` application uses Microsoft Agent Harness, local **Qwen2.5-1.5B-Instruct Q4 ONNX**, native Laya decisions, and a visible Chromium cursor. See [Qwen setup, validation and timings](docs/qwen-website-summary-validation.md). The [Gemma](docs/gemma-website-summary-validation.md) and [LFM](docs/website-summary-validation.md) reports are historical comparisons.
+The separate `harness/` application uses Microsoft Agent Harness, local **Qwen3-1.7B Q4 ONNX** with `--thinking on|off` (default off), native tool calls, native Laya decisions, and a visible Chromium cursor. See [Qwen3 setup, validation and timings](docs/qwen3-website-summary-validation.md). The [Qwen2.5](docs/qwen-website-summary-validation.md), [Gemma](docs/gemma-website-summary-validation.md) and [LFM](docs/website-summary-validation.md) reports are historical comparisons.
 
 ```powershell
 pwsh -File scripts/Setup-WebsiteBot.ps1

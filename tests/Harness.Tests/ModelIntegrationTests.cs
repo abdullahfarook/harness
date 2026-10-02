@@ -8,6 +8,19 @@ namespace Harness.Tests;
 [Category("ModelIntegration")]
 public class ModelIntegrationTests
 {
+    [TestCase(false),TestCase(true),Explicit("Runs actual Qwen3 Q4 generation and native tool call")]
+    public async Task Qwen3RealInference(bool thinking)
+    {
+        using Qwen3Model model=new(ModelAssets.Load(Path.Combine(Root,"qwen3"),"qwen3"),thinking);
+        using CancellationTokenSource timeout=new(TimeSpan.FromMinutes(10));
+        string answer=await model.GenerateAsync([new(ChatRole.User,"What is 6 times 7? Answer briefly.")],2048,timeout.Token);
+        Assert.That(ActionProtocol.RemoveThinking(answer),Does.Contain("42"));
+        AIFunction classify=AIFunctionFactory.Create(()=>true,"classify");
+        string call=await model.GenerateAsync([new(ChatRole.System,"Call classify with no arguments. Return only the native tool call."),new(ChatRole.User,"The page is already captured; classify it now.")],[classify],2048,timeout.Token);
+        ParsedAction action=Qwen3Protocol.Parse(call,["classify"],false);
+        ActionProtocol.ValidateArguments(action,[classify]);
+        Assert.That(action.Tool,Is.EqualTo("classify"));
+    }
     [Test, Explicit("Runs real Qwen2.5-1.5B-Instruct Q4 ONNX weights on CPU")]
     public async Task QwenRealInference()
     {

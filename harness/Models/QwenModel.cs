@@ -14,12 +14,15 @@ public sealed class QwenModel : ILocalTextModel
     private readonly HashSet<int> eos;
     private readonly Action<GenerationTiming>? timing;
     private readonly Action<string>? diagnostics;
+    private readonly SamplingSettings? sampling;
+    private readonly Random random;
     private readonly SemaphoreSlim gate=new(1,1);
-    public string ModelId=>"onnx-community/Qwen2.5-1.5B-Instruct";
-    public QwenModel(ModelAssets assets,int threads=4,Action<GenerationTiming>? timing=null,Action<string>? diagnostics=null)
+    public string ModelId { get; }
+    public QwenModel(ModelAssets assets,int threads=4,Action<GenerationTiming>? timing=null,Action<string>? diagnostics=null,SamplingSettings? sampling=null,int seed=42)
     {
         this.timing=timing;
         this.diagnostics=diagnostics;
+        this.sampling=sampling; random=new(seed); ModelId=assets.Manifest.GetProperty("repo").GetString()!;
         tokenizer=new(assets.TokenizerPath);
         using JsonDocument configuration=JsonDocument.Parse(File.ReadAllText(Path.Combine(assets.DirectoryPath,"generation_config.json")));
         JsonElement stop=configuration.RootElement.GetProperty("eos_token_id");
@@ -42,9 +45,11 @@ public sealed class QwenModel : ILocalTextModel
         return result.Append("<|im_start|>assistant\n").ToString();
     }
     public async Task<string> GenerateAsync(IReadOnlyList<ChatMessage> messages,int maxTokens,CancellationToken cancellationToken)
+        =>await GeneratePromptAsync(Prompt(messages),maxTokens,cancellationToken);
+    public async Task<string> GeneratePromptAsync(string prompt,int maxTokens,CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken);
-        try { return await Task.Run(()=>Generate(Prompt(messages),maxTokens,cancellationToken),cancellationToken); }
+        try { return await Task.Run(()=>Generate(prompt,maxTokens,cancellationToken),cancellationToken); }
         finally { gate.Release(); }
     }
     private string Generate(string prompt,int maxTokens,CancellationToken token)
@@ -70,7 +75,8 @@ public sealed class QwenModel : ILocalTextModel
                 if (step==0) { prefill=elapsed.Elapsed.TotalSeconds; }
                 Tensor<float> logits=outputs.First(o=>o.Name=="logits").AsTensor<float>();
                 int vocabulary=logits.Dimensions[^1],last=logits.Dimensions[1]-1;
-                int next=LfmThinkingModel.SelectToken(Enumerable.Range(0,vocabulary).Select(i=>logits[0,last,i]).ToArray(),generated,1.1);
+                float[] values=Enumerable.Range(0,vocabulary).Select(i=>logits[0,last,i]).ToArray();
+                int next=sampling is null ? LfmThinkingModel.SelectToken(values,generated,1.1) : TokenSampler.Select(values,generated,sampling,random);
                 cache.Clear();
                 foreach (DisposableNamedOnnxValue output in outputs) { string name=output.Name.Replace("present.","past_key_values.",StringComparison.Ordinal); if (session.InputMetadata.ContainsKey(name)) { cache[name]=NamedOnnxValue.CreateFromTensor(name,output.AsTensor<float>()); } }
                 previous?.Dispose(); previous=outputs;

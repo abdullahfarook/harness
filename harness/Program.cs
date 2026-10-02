@@ -14,8 +14,8 @@ try
     using CancellationTokenSource timeout=new(TimeSpan.FromSeconds(options.TimeoutSeconds));
     Console.CancelKeyPress+=(_,e)=> { e.Cancel=true; timeout.Cancel(); };
     Console.Error.WriteLine("Verifying requested local ONNX models...");
-    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,"qwen");
-    using QwenModel thinking=new(brainAssets,timing:value=>evidence.Event("generation_timing",value),diagnostics:value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
+    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,"qwen3");
+    using Qwen3Model thinking=new(brainAssets,options.Thinking,options.Seed,options.PresencePenalty,timing:value=>evidence.Event("generation_timing",value),diagnostics:value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
     if (options.Question is not null)
     {
         double startupSeconds=whole.Elapsed.TotalSeconds;
@@ -23,18 +23,19 @@ try
         for (int i=0;i<options.Repeats;i++)
         {
             Stopwatch questionTime=Stopwatch.StartNew();
-            string answer=await thinking.GenerateAsync([new(ChatRole.User,options.Question)],512,timeout.Token);
+            string answer=await thinking.GenerateAsync([new(ChatRole.User,options.Question)],options.Thinking ? 2048 : 512,timeout.Token);
+            answer=Qwen3Protocol.FinalContent(answer);
             results.Add(new { trial=i+1,seconds=questionTime.Elapsed.TotalSeconds,answer });
             Console.WriteLine(answer);
         }
-        evidence.Write("question.json",new { model=thinking.ModelId,thinking=false,question=options.Question,startupSeconds,results });
-        evidence.Write("models.json",new { qwen=brainAssets.Manifest });
+        evidence.Write("question.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=thinking.Sampling,seed=options.Seed,question=options.Question,startupSeconds,results });
+        evidence.Write("models.json",new { qwen3=brainAssets.Manifest });
         return 0;
     }
     ModelAssets layaAssets=ModelAssets.Load(options.LayaModel,"laya");
-    evidence.Write("models.json",new { qwen=brainAssets.Manifest,laya=layaAssets.Manifest });
+    evidence.Write("models.json",new { qwen3=brainAssets.Manifest,laya=layaAssets.Manifest });
     using LayaDecisionModel quick=new(layaAssets);
-    using LocalChatClient client=new(thinking,evidence.Record);
+    using LocalChatClient client=new(thinking,evidence.Record,options.Thinking ? 4096 : 1536);
     await using BrowserTools browser=new(options.Url,evidence,quick);
     await browser.StartAsync(options.Headless,timeout.Token);
     double startup=whole.Elapsed.TotalSeconds;
@@ -43,7 +44,7 @@ try
     {
         Name="website-summary",
         HarnessInstructions="Use only the supplied read-only website tools. Return verified findings, not planned actions.",
-        ChatOptions=new() { Tools=tools,MaxOutputTokens=1536 },
+        ChatOptions=new() { Tools=tools,MaxOutputTokens=options.Thinking ? 4096 : 1536 },
         DisableTodoProvider=true,DisableAgentModeProvider=true,DisableFileMemory=true,
         DisableAgentSkillsProvider=true,DisableWebSearch=true,
         DisableOpenTelemetry=true
@@ -54,7 +55,7 @@ try
     if (browser.LastObservation is null || browser.Classifications==0 || string.IsNullOrWhiteSpace(response.Text)) { throw new InvalidDataException("Incomplete run: require real browser evidence, Laya usage and a nonempty summary."); }
     if (!browser.Visited.Any(url => response.Text.Contains(url,StringComparison.OrdinalIgnoreCase))) { throw new InvalidDataException("Summary is missing observed source URLs."); }
     File.WriteAllText(Path.Combine(evidence.DirectoryPath,"summary.txt"),response.Text);
-    evidence.Write("run.json",new { model=thinking.ModelId,thinking=false,target=options.Url.AbsoluteUri,headed=!options.Headless,visited=browser.Visited,layaCalls=browser.Classifications,startupSeconds=startup,liveSeconds=live.Elapsed.TotalSeconds,totalSeconds=whole.Elapsed.TotalSeconds,status="generated-awaiting-grounding-review" });
+    evidence.Write("run.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=thinking.Sampling,seed=options.Seed,target=options.Url.AbsoluteUri,headed=!options.Headless,visited=browser.Visited,layaCalls=browser.Classifications,startupSeconds=startup,liveSeconds=live.Elapsed.TotalSeconds,totalSeconds=whole.Elapsed.TotalSeconds,status="generated-awaiting-grounding-review" });
     Console.WriteLine(response.Text);
     if (!options.Headless && options.KeepOpenSeconds>0) { await Task.Delay(TimeSpan.FromSeconds(options.KeepOpenSeconds),timeout.Token); }
     return 0;

@@ -24,9 +24,8 @@ public class QwenTests
         Assert.That(QwenModel.CacheShape([-1,2,-1,128],["batch_size","","past_sequence_length",""]),Is.EqualTo(new[] {1,2,0,128}));
     }
     [Test]
-    public void QwenIsDefaultAndCanBeOverridden()
+    public void Qwen3PathCanBeOverridden()
     {
-        Assert.That(BotOptions.Parse([]).BrainModel,Does.EndWith("website-models/qwen"));
-        Assert.That(BotOptions.Parse(["--qwen-model","custom"]).BrainModel,Is.EqualTo("custom"));
+        Assert.That(BotOptions.Parse(["--qwen3-model","custom"]).BrainModel,Is.EqualTo("custom"));
     }
 }

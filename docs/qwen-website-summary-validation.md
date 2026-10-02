@@ -1,5 +1,7 @@
 # Qwen2.5-1.5B-Instruct ONNX validation — 2026-10-02
 
+**Historical Qwen2.5 baseline at commit `3d96211`.** The default is now Qwen3; use the [current Qwen3 report](qwen3-website-summary-validation.md). Commands below describe the historical version.
+
 ## Setup and repeat checks
 
 Windows x64, .NET 10, PowerShell and curl.exe; run from repository root:

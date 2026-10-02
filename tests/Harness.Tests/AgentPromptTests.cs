@@ -7,6 +7,20 @@ namespace Harness.Tests;
 public class AgentPromptTests
 {
     [Test]
+    public void ArchitectureCannotBeInventedAsAnAvailabilityStatus()
+    {
+        ChatMessage[] history=[new(ChatRole.Tool,[new FunctionResultContent("page",new { Url="https://openplatestudio.com/",Title="Product",Text="COMING SOON Modular Monolith. Domain-Driven.",Truncated=false,Links=Array.Empty<object>() })])];
+        Assert.Throws<InvalidDataException>(()=>AgentPrompt.ValidateSummary("- Availability: COMING SOON | MODULAR MONOLITH (exact status labels preserved)\nSource: https://openplatestudio.com/",history));
+        Assert.DoesNotThrow(()=>AgentPrompt.ValidateSummary("- Features: Modular Monolith\n- Availability: COMING SOON\nSource: https://openplatestudio.com/",history));
+    }
+    [Test]
+    public void Qwen3ReadinessUsesNativeCallSyntaxAndPreservesTypedHistory()
+    {
+        AIFunction navigate=AIFunctionFactory.Create((string url)=>url,"navigate");
+        AgentRequest request=AgentPrompt.Build([new(ChatRole.User,"Summarize https://openplatestudio.com/")],[navigate],false,true);
+        Assert.That(request.Messages[0].Text,Does.Contain("<tool_call>").And.Not.Contain("\"tool\""));
+    }
+    [Test]
     public void ClassificationRoutingOmitsPageBodyButFinalSummaryRetainsIt()
     {
         const string body="UNIQUE_FULL_EVIDENCE COMING SOON";
