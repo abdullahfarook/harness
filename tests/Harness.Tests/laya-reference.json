@@ -1,0 +1,74 @@
+{
+  "state": "OpenPlate Studio offers an enterprise application boilerplate for developers.",
+  "questions": {
+    "relevant": {
+      "type": "noul",
+      "instructions": "Does the text describe what a software product offers?"
+    },
+    "category": {
+      "type": "choice",
+      "instructions": "What does the product offer?",
+      "criteria": {
+        "software": "software development tools",
+        "food": "food delivery",
+        "other": "another category"
+      }
+    },
+    "completeness": {
+      "type": "score",
+      "instructions": "How much product detail is present?",
+      "criteria": [
+        "none",
+        "a short description",
+        "detailed feature list"
+      ]
+    }
+  },
+  "result": {
+    "model": "laya",
+    "answers": {
+      "relevant": {
+        "type": "noul",
+        "noul": 0.9501,
+        "rl_agent": {
+          "act_probability": 1
+        }
+      },
+      "category": {
+        "type": "choice",
+        "choice": "software",
+        "probabilities": {
+          "software": 0.8679,
+          "food": 0.0869,
+          "other": 0.0453
+        },
+        "confidence": 0.5673,
+        "rl_agent": {
+          "act_probability": 1
+        }
+      },
+      "completeness": {
+        "type": "score",
+        "score": 0.9348,
+        "legend": {
+          "0": "none",
+          "1": "a short description",
+          "2": "detailed feature list"
+        },
+        "probabilities": {
+          "0": 0.2884,
+          "1": 0.4884,
+          "2": 0.2232
+        },
+        "confidence": 0.0503,
+        "rl_agent": {
+          "act_probability": 1
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 137,
+      "output_tokens": 0
+    }
+  }
+}

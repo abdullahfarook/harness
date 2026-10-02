@@ -4,4 +4,7 @@ kube.config
 artifacts/
 __pycache__/
 *.pyc
+**/bin/
+**/obj/
+TestResults/
 docs/hermes-deployment-review.html

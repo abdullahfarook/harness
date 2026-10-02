@@ -1,5 +1,14 @@
 # Hermes + Hermes-3-3B + Open WebUI on ARM64 Kubernetes
 
+## Local website summary bot (C#)
+
+The separate `harness/` application uses Microsoft Agent Harness, local LFM thinking inference, native Laya decisions, and a visible Chromium cursor. See [setup and validation](docs/website-summary-validation.md).
+
+```powershell
+pwsh -File scripts/Setup-WebsiteBot.ps1
+dotnet run --project harness -- --url https://openplatestudio.com/ --output artifacts/website-summary/run-1
+```
+
 Three separate workloads: **Open WebUI → Hermes Agent → llama.cpp / Hermes-3-Llama-3.2-3B Q4_K_M**. Model context is **8192**, parallel slots **1**. Each component has its own persistent volume. Access is private by default.
 
 ## Deploy / upgrade / test

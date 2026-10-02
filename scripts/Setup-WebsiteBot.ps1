@@ -13,7 +13,7 @@ foreach ($bundle in $bundles) {
         $url = "https://huggingface.co/$($bundle.Repo)/resolve/$($bundle.Revision)/$file"
         if (-not (Test-Path -LiteralPath $target)) {
             Write-Host "Downloading $($bundle.Name)/$file"
-            & curl.exe --fail --location --retry 5 --retry-delay 3 --output "$target.partial" $url
+            & curl.exe --fail --location --http1.1 --continue-at - --speed-time 60 --speed-limit 1024 --connect-timeout 30 --retry 5 --retry-delay 3 --output "$target.partial" "$url`?download=true"
             if ($LASTEXITCODE -ne 0) { throw "Download failed: $url (partial preserved for diagnosis)" }
             Move-Item -LiteralPath "$target.partial" -Destination $target
         }

@@ -68,3 +68,7 @@
 
 ## Execution choice
 Recommend native execution in this session: model formatting, Harness protocol and browser observations are closely coupled; one implementer avoids handoff overhead. Delegation is optional only if selected by the user.
+
+## Execution outcome (2026-10-02)
+
+Tasks 1–5 implemented and validated; see `docs/website-summary-validation.md` for the final 50 regression tests, 3 real-model tests, live Harness execution and grounding review. Scoped adjustments: native LFM tool syntax is supported alongside JSON; a bounded 128-token reasoning section and repetition penalty prevent CPU thinking loops; final evidence is condensed after real classification. All redirects fail closed because Playwright does not reliably intercept subsequent redirect-chain requests. Supply the final public URL directly. WebSockets are blocked. CLI exit-code validation and actual Harness integration were demonstrated by executable/live probes rather than mocked orchestration. The original step checkboxes remain the pre-execution checklist; this outcome and validation report are the authoritative completion record.

@@ -15,6 +15,9 @@ public sealed record ModelAssets(string DirectoryPath, string GraphPath, string 
         JsonElement manifest = document.RootElement.Clone();
         string expectedRepo = name switch { "lfm" => "LiquidAI/LFM2.5-1.2B-Thinking-ONNX", "laya" => "receptron/laya-onnx", _ => throw new ArgumentException("Unknown model", nameof(name)) };
         if (manifest.GetProperty("name").GetString() != name || manifest.GetProperty("repo").GetString() != expectedRepo) { throw new InvalidDataException("Wrong model identity in manifest."); }
+        string[] required=name=="lfm" ? ["onnx/model_q4.onnx","onnx/model_q4.onnx_data","config.json","generation_config.json","tokenizer.json","tokenizer_config.json"] : ["laya.onnx","laya.onnx.data","laya_config.json","tokenizer/tokenizer.json","tokenizer/tokenizer_config.json"];
+        HashSet<string> listed=manifest.GetProperty("files").EnumerateArray().Select(f=>f.GetProperty("path").GetString()!).ToHashSet(StringComparer.Ordinal);
+        if (required.Any(file=>!listed.Contains(file))) { throw new InvalidDataException("Manifest omits required model files."); }
         foreach (JsonElement file in manifest.GetProperty("files").EnumerateArray())
         {
             string path = Path.GetFullPath(Path.Combine(directory, file.GetProperty("path").GetString()!));
