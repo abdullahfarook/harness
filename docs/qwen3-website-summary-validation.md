@@ -1,5 +1,7 @@
 # Qwen3-1.7B Q4 local website bot — 2026-10-02
 
+**Historical Qwen3 baseline at commit `ccc49b7`.** The default is now Qwen3.5; see the [current report](qwen35-website-summary-validation.md). Commands below describe the prior version.
+
 ## Run
 
 From the repository root on Windows x64 with .NET 10:

@@ -1,6 +1,6 @@
 # Gemma 4 E2B website-summary validation — 2026-10-02
 
-**Historical Gemma baseline at commit `7bfd390`.** The default brain is now Qwen3; use the [current Qwen3 report](qwen3-website-summary-validation.md). The commands below describe the older Gemma version.
+**Historical Gemma baseline at commit `7bfd390`.** The default brain is now Qwen3.5; use the [current Qwen3.5 report](qwen35-website-summary-validation.md). The commands below describe the older Gemma version.
 
 ## Setup / repeat validation
 

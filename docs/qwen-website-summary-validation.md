@@ -1,6 +1,6 @@
 # Qwen2.5-1.5B-Instruct ONNX validation — 2026-10-02
 
-**Historical Qwen2.5 baseline at commit `3d96211`.** The default is now Qwen3; use the [current Qwen3 report](qwen3-website-summary-validation.md). Commands below describe the historical version.
+**Historical Qwen2.5 baseline at commit `3d96211`.** The default is now Qwen3.5; use the [current Qwen3.5 report](qwen35-website-summary-validation.md). Commands below describe the historical version.
 
 ## Setup and repeat checks
 

@@ -1,7 +1,8 @@
-param([string]$ModelRoot = "$PSScriptRoot/../.local/website-models", [switch]$SkipBrowser, [ValidateSet('qwen3','qwen','gemma','lfm','all')][string]$Brain='qwen3')
+param([string]$ModelRoot = "$PSScriptRoot/../.local/website-models", [switch]$SkipBrowser, [ValidateSet('qwen35','qwen3','qwen','gemma','lfm','all')][string]$Brain='qwen35')
 $ErrorActionPreference = 'Stop'
 $ModelRoot = [IO.Path]::GetFullPath($ModelRoot)
 $bundles = @(
+    @{ Name='qwen35'; Repo='onnx-community/Qwen3.5-0.8B-ONNX'; Revision='c0d619322dad7c4441a8841a53fc59772ddddcc0'; Files=@('onnx/decoder_model_merged_q4.onnx','onnx/decoder_model_merged_q4.onnx_data','onnx/embed_tokens_q4.onnx','onnx/embed_tokens_q4.onnx_data','config.json','generation_config.json','tokenizer.json','tokenizer_config.json','chat_template.jinja') },
     @{ Name='qwen3'; Repo='onnx-community/Qwen3-1.7B-ONNX'; Revision='cc6a06a21d614e9b8e92a6adfab1074d4e7d2438'; Files=@('onnx/model_q4.onnx','config.json','generation_config.json','tokenizer.json','tokenizer_config.json') },
     @{ Name='qwen'; Repo='onnx-community/Qwen2.5-1.5B-Instruct'; Revision='6287331f475a3e20e8c879be8fd4bf3551ad9d34'; Files=@('onnx/model_q4.onnx','config.json','generation_config.json','tokenizer.json','tokenizer_config.json') },
     @{ Name='gemma'; Repo='onnx-community/gemma-4-E2B-it-ONNX'; Revision='9f4bef82ea6e296bc69f8a2f5939f73af81b07a6'; Files=@('onnx/decoder_model_merged_q4.onnx','onnx/decoder_model_merged_q4.onnx_data','onnx/embed_tokens_q4.onnx','onnx/embed_tokens_q4.onnx_data','config.json','generation_config.json','tokenizer.json','tokenizer_config.json') },

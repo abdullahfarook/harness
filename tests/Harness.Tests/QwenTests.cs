@@ -26,6 +26,6 @@ public class QwenTests
     [Test]
     public void Qwen3PathCanBeOverridden()
     {
-        Assert.That(BotOptions.Parse(["--qwen3-model","custom"]).BrainModel,Is.EqualTo("custom"));
+        Assert.That(BotOptions.Parse(["--qwen35-model","custom"]).BrainModel,Is.EqualTo("custom"));
     }
 }

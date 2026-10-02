@@ -152,7 +152,7 @@ public sealed class BrowserTools : IAsyncDisposable
         for (int i=1;i<=steps;i++) { token.ThrowIfCancellationRequested(); await page!.Mouse.MoveAsync(fromX+(x-fromX)*i/steps,fromY+(y-fromY)*i/steps); await Task.Delay(15,token); }
         mouseX=x; mouseY=y;
     }
-    [Description("Ask the fast local Laya ONNX model whether the currently observed page describes the site's product or service. Returns calibrated typed probabilities.")]
+    [Description("Ask the fast local Laya ONNX model whether the currently observed page describes the site's product or service. Automatically reads the page text already stored in backend state; takes no parameters and needs no supplied text or image. Returns calibrated typed probabilities.")]
     public DecisionResult Classify()
     {
         if (LastObservation is null || laya is null) { throw new InvalidOperationException("Observe a page before classifying."); }

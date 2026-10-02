@@ -8,6 +8,19 @@ namespace Harness.Tests;
 [Category("ModelIntegration")]
 public class ModelIntegrationTests
 {
+    [TestCase(false),TestCase(true),Explicit("Runs native Qwen3.5 Q4 CPU graph and XML tools")]
+    public async Task Qwen35RealInference(bool thinking)
+    {
+        using Qwen35Model model=new(ModelAssets.Load(Path.Combine(Root,"qwen35"),"qwen35"),thinking);
+        using CancellationTokenSource timeout=new(TimeSpan.FromMinutes(10));
+        string answer=await model.GenerateAsync([new(ChatRole.User,"What is 6 times 7? Answer briefly.")],2048,timeout.Token);
+        Assert.That(Qwen3Protocol.FinalContent(answer),Does.Contain("42"));
+        AIFunction classify=AIFunctionFactory.Create(()=>true,"classify","Classifies plain page text already stored in backend state. Takes no parameters; no supplied text or image is needed.");
+        string call=await model.GenerateAsync([new(ChatRole.System,"The backend has stored OpenPlate's plain website text. classify automatically reads it. Call classify with no parameters. Return only the native XML function call."),new(ChatRole.User,"Classify the stored website text now.")],[classify],2048,timeout.Token);
+        string diagnostic=Path.GetFullPath(Path.Combine(Root,"../../artifacts/website-summary/qwen35-compatibility-"+(thinking ? "on" : "off")));
+        Directory.CreateDirectory(diagnostic); File.WriteAllText(Path.Combine(diagnostic,"call.txt"),call);
+        Assert.That(Qwen35Protocol.Parse(call,[classify],false).Tool,Is.EqualTo("classify"));
+    }
     [TestCase(false),TestCase(true),Explicit("Runs actual Qwen3 Q4 generation and native tool call")]
     public async Task Qwen3RealInference(bool thinking)
     {

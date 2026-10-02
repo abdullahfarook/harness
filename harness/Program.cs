@@ -14,8 +14,8 @@ try
     using CancellationTokenSource timeout=new(TimeSpan.FromSeconds(options.TimeoutSeconds));
     Console.CancelKeyPress+=(_,e)=> { e.Cancel=true; timeout.Cancel(); };
     Console.Error.WriteLine("Verifying requested local ONNX models...");
-    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,"qwen3");
-    using Qwen3Model thinking=new(brainAssets,options.Thinking,options.Seed,options.PresencePenalty,timing:value=>evidence.Event("generation_timing",value),diagnostics:value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
+    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,"qwen35");
+    using Qwen35Model thinking=new(brainAssets,options.Thinking,options.Seed,options.PresencePenalty,timing:value=>evidence.Event("generation_timing",value),diagnostics:value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
     if (options.Question is not null)
     {
         double startupSeconds=whole.Elapsed.TotalSeconds;
@@ -29,11 +29,11 @@ try
             Console.WriteLine(answer);
         }
         evidence.Write("question.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=thinking.Sampling,seed=options.Seed,question=options.Question,startupSeconds,results });
-        evidence.Write("models.json",new { qwen3=brainAssets.Manifest });
+        evidence.Write("models.json",new { qwen35=brainAssets.Manifest });
         return 0;
     }
     ModelAssets layaAssets=ModelAssets.Load(options.LayaModel,"laya");
-    evidence.Write("models.json",new { qwen3=brainAssets.Manifest,laya=layaAssets.Manifest });
+    evidence.Write("models.json",new { qwen35=brainAssets.Manifest,laya=layaAssets.Manifest });
     using LayaDecisionModel quick=new(layaAssets);
     using LocalChatClient client=new(thinking,evidence.Record,options.Thinking ? 4096 : 1536);
     await using BrowserTools browser=new(options.Url,evidence,quick);

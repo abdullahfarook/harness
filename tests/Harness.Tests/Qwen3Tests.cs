@@ -54,7 +54,7 @@ public class Qwen3Tests
     [Test]
     public void Qwen3IsDefaultWithExplicitModeAndSeed()
     {
-        Assert.That(BotOptions.Parse([]).BrainModel,Does.EndWith("website-models/qwen3"));
+        Assert.That(BotOptions.Parse([]).BrainModel,Does.EndWith("website-models/qwen35"));
         Assert.That(BotOptions.Parse([]).Thinking,Is.False);
         Assert.That(BotOptions.Parse(["--thinking","on","--seed","7"]).Thinking,Is.True);
         Assert.That(BotOptions.Parse(["--seed","7"]).Seed,Is.EqualTo(7));

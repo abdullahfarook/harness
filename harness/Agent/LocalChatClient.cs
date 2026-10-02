@@ -11,18 +11,18 @@ public sealed class LocalChatClient(ILocalTextModel model, Action<string> record
     {
         List<ChatMessage> history = messages.ToList();
         List<AIFunction> tools = options?.Tools?.OfType<AIFunction>().ToList() ?? [];
-        AgentRequest request=AgentPrompt.Build(history,tools,model is LfmThinkingModel,model is Qwen3Model);
+        AgentRequest request=AgentPrompt.Build(history,tools,model is LfmThinkingModel,model is Qwen3Model,model is Qwen35Model);
         tools=request.Tools;
         record(JsonSerializer.Serialize(new { timestamp=DateTimeOffset.UtcNow,kind="model_request",model=model.ModelId,tools=tools.Select(t=>t.Name).ToArray(),messages=history.Count }));
         List<ChatMessage> prompt = request.Messages;
         for (int attempt = 0; attempt < 3; attempt++)
         {
             System.Diagnostics.Stopwatch timer=System.Diagnostics.Stopwatch.StartNew();
-            string output = model is Qwen3Model qwen3 ? await qwen3.GenerateAsync(prompt,tools,maxTokens,cancellationToken) : await model.GenerateAsync(prompt,maxTokens,cancellationToken);
+            string output = model is Qwen35Model qwen35 ? await qwen35.GenerateAsync(prompt,tools,maxTokens,cancellationToken) : model is Qwen3Model qwen3 ? await qwen3.GenerateAsync(prompt,tools,maxTokens,cancellationToken) : await model.GenerateAsync(prompt,maxTokens,cancellationToken);
             record(JsonSerializer.Serialize(new { timestamp=DateTimeOffset.UtcNow,kind="model_response",model=model.ModelId,output,stage=tools.Count==0 ? "summary" : "decision",seconds=timer.Elapsed.TotalSeconds,attempt }));
             try
             {
-                ParsedAction action = model is Qwen3Model ? Qwen3Protocol.Parse(output,tools.Select(t=>t.Name).ToArray(),request.HasClassification) : ActionProtocol.Parse(output,tools.Select(t => t.Name).ToArray(),request.HasClassification);
+                ParsedAction action = model is Qwen35Model ? Qwen35Protocol.Parse(output,tools,request.HasClassification) : model is Qwen3Model ? Qwen3Protocol.Parse(output,tools.Select(t=>t.Name).ToArray(),request.HasClassification) : ActionProtocol.Parse(output,tools.Select(t => t.Name).ToArray(),request.HasClassification);
                 ActionProtocol.ValidateArguments(action,tools);
                 ChatMessage response;
                 if (action.Tool is not null) { response = new(ChatRole.Assistant,[new FunctionCallContent(Guid.NewGuid().ToString("N"),action.Tool,action.Arguments)]); }
@@ -35,7 +35,7 @@ public sealed class LocalChatClient(ILocalTextModel model, Action<string> record
                 return new(response) { ModelId=model.ModelId };
             }
             catch (InvalidDataException exception) when (attempt < 2)
-            { prompt.Add(new(ChatRole.User,request.HasClassification && tools.Count==0 ? $"Correct the summary: {exception.Message} Return factual summary text, not commentary." : $"Invalid response: {exception.Message} "+(model is Qwen3Model ? "Return exactly one <tool_call> JSON with name and arguments using only the supplied schemas; no extra parameters." : "Return one JSON object with tool and arguments fields using only available tools."))); }
+            { prompt.Add(new(ChatRole.User,request.HasClassification && tools.Count==0 ? $"Correct the summary: {exception.Message} Return factual summary text, not commentary." : $"Invalid response: {exception.Message} "+(model is Qwen35Model ? "Return one native XML tool_call/function block, with only schema-defined parameter blocks. classify has no parameters and reads backend stored text." : model is Qwen3Model ? "Return exactly one <tool_call> JSON with name and arguments using only the supplied schemas; no extra parameters." : "Return one JSON object with tool and arguments fields using only available tools."))); }
         }
         throw new InvalidDataException("Invalid model action after bounded retries.");
     }

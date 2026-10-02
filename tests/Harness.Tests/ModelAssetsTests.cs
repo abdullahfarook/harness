@@ -7,6 +7,18 @@ public class ModelAssetsTests
 {
     [TestCase("wrong")]
     [TestCase(null)]
+    public void Qwen35RejectsUnpinnedRevision(string? revision)
+    {
+        string directory=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString()); Directory.CreateDirectory(directory);
+        try
+        {
+            File.WriteAllText(Path.Combine(directory,"manifest.json"),System.Text.Json.JsonSerializer.Serialize(new {name="qwen35",repo="onnx-community/Qwen3.5-0.8B-ONNX",revision,files=Array.Empty<object>()}));
+            Assert.That(()=>ModelAssets.Load(directory,"qwen35"),Throws.TypeOf<InvalidDataException>().With.Message.Contains("revision"));
+        }
+        finally { Directory.Delete(directory,true); }
+    }
+    [TestCase("wrong")]
+    [TestCase(null)]
     public void Qwen3RejectsUnpinnedRevision(string? revision)
     {
         string directory=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString()); Directory.CreateDirectory(directory);

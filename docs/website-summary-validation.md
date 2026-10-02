@@ -1,6 +1,6 @@
 # Local website summary bot
 
-**Historical LFM baseline.** The default brain is now Qwen3-1.7B Q4 ONNX; use the current [Qwen3 setup and timing report](qwen3-website-summary-validation.md). Commands and model paths below describe the earlier LFM version.
+**Historical LFM baseline.** The default brain is now Qwen3.5-0.8B Q4 ONNX; use the current [Qwen3.5 setup and timing report](qwen35-website-summary-validation.md). Commands and model paths below describe the earlier LFM version.
 
 ## Setup and run
 
