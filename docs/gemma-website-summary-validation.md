@@ -1,5 +1,7 @@
 # Gemma 4 E2B website-summary validation — 2026-10-02
 
+**Historical Gemma baseline at commit `7bfd390`.** The default brain is now Qwen; use the [current Qwen report](qwen-website-summary-validation.md). The commands below describe the older Gemma version.
+
 ## Setup / repeat validation
 
 Run in the repository root on Windows x64 with .NET 10, PowerShell and curl.exe:

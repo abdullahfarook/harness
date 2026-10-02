@@ -27,9 +27,4 @@ public class GemmaTests
         Assert.That(GemmaModel.CacheShape([1,1,-1,512],["","","past_sequence_length",""]),Is.EqualTo(new[] {1,1,0,512}));
         Assert.That(GemmaModel.CacheShape([1,1,-1,256],["","","past_sequence_length",""]),Is.EqualTo(new[] {1,1,0,256}));
     }
-    [Test]
-    public void DefaultBrainPathIsGemma()
-    {
-        Assert.That(BotOptions.Parse([]).GemmaModel,Does.EndWith("website-models/gemma"));
-    }
 }

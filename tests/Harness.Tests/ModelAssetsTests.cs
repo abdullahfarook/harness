@@ -5,6 +5,18 @@ namespace Harness.Tests;
 
 public class ModelAssetsTests
 {
+    [TestCase("other-revision")]
+    [TestCase(null)]
+    public void QwenRejectsUnpinnedOrMissingRevision(string? revision)
+    {
+        string directory=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString()); Directory.CreateDirectory(directory);
+        try
+        {
+            File.WriteAllText(Path.Combine(directory,"manifest.json"),System.Text.Json.JsonSerializer.Serialize(new {name="qwen",repo="onnx-community/Qwen2.5-1.5B-Instruct",revision,files=Array.Empty<object>()}));
+            Assert.That(()=>ModelAssets.Load(directory,"qwen"),Throws.TypeOf<InvalidDataException>().With.Message.Contains("revision"));
+        }
+        finally { Directory.Delete(directory,true); }
+    }
     [Test]
     public void ManifestCannotOmitRequiredExternalDataAndConfig()
     {

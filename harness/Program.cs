@@ -14,8 +14,8 @@ try
     using CancellationTokenSource timeout=new(TimeSpan.FromSeconds(options.TimeoutSeconds));
     Console.CancelKeyPress+=(_,e)=> { e.Cancel=true; timeout.Cancel(); };
     Console.Error.WriteLine("Verifying requested local ONNX models...");
-    ModelAssets gemmaAssets=ModelAssets.Load(options.GemmaModel,"gemma");
-    using GemmaModel thinking=new(gemmaAssets,timing:value=>evidence.Event("generation_timing",value));
+    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,"qwen");
+    using QwenModel thinking=new(brainAssets,timing:value=>evidence.Event("generation_timing",value),diagnostics:value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
     if (options.Question is not null)
     {
         double startupSeconds=whole.Elapsed.TotalSeconds;
@@ -28,11 +28,11 @@ try
             Console.WriteLine(answer);
         }
         evidence.Write("question.json",new { model=thinking.ModelId,thinking=false,question=options.Question,startupSeconds,results });
-        evidence.Write("models.json",new { gemma=gemmaAssets.Manifest });
+        evidence.Write("models.json",new { qwen=brainAssets.Manifest });
         return 0;
     }
     ModelAssets layaAssets=ModelAssets.Load(options.LayaModel,"laya");
-    evidence.Write("models.json",new { gemma=gemmaAssets.Manifest,laya=layaAssets.Manifest });
+    evidence.Write("models.json",new { qwen=brainAssets.Manifest,laya=layaAssets.Manifest });
     using LayaDecisionModel quick=new(layaAssets);
     using LocalChatClient client=new(thinking,evidence.Record);
     await using BrowserTools browser=new(options.Url,evidence,quick);

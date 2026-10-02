@@ -1,6 +1,6 @@
 # Local website summary bot
 
-**Historical LFM baseline.** The default brain is now Gemma 4 E2B ONNX; use the current [Gemma setup and timing report](gemma-website-summary-validation.md). Commands and model paths below describe the earlier LFM version.
+**Historical LFM baseline.** The default brain is now Qwen2.5-1.5B-Instruct ONNX; use the current [Qwen setup and timing report](qwen-website-summary-validation.md). Commands and model paths below describe the earlier LFM version.
 
 ## Setup and run
 

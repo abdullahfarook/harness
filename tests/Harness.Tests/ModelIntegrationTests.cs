@@ -8,6 +8,18 @@ namespace Harness.Tests;
 [Category("ModelIntegration")]
 public class ModelIntegrationTests
 {
+    [Test, Explicit("Runs real Qwen2.5-1.5B-Instruct Q4 ONNX weights on CPU")]
+    public async Task QwenRealInference()
+    {
+        List<GenerationTiming> measurements=[];
+        using QwenModel model=new(ModelAssets.Load(Path.Combine(Root,"qwen"),"qwen"),timing:measurements.Add);
+        using CancellationTokenSource timeout=new(TimeSpan.FromMinutes(4));
+        string answer=await model.GenerateAsync([new(ChatRole.User,"What is 6 times 7? Answer briefly.")],512,timeout.Token);
+        Assert.That(answer,Does.Contain("42"));
+        Assert.That(measurements,Has.Count.EqualTo(1));
+        Assert.That(measurements[0].GenerationSeconds,Is.GreaterThanOrEqualTo(measurements[0].PrefillSeconds));
+        TestContext.Out.WriteLine(System.Text.Json.JsonSerializer.Serialize(new {answer,timing=measurements[0]}));
+    }
     [Test, Explicit("Runs real Gemma 4 E2B Q4 ONNX weights on CPU")]
     public async Task GemmaRealInference()
     {

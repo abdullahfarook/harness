@@ -7,6 +7,19 @@ namespace Harness.Tests;
 public class AgentPromptTests
 {
     [Test]
+    public void ClassificationRoutingOmitsPageBodyButFinalSummaryRetainsIt()
+    {
+        const string body="UNIQUE_FULL_EVIDENCE COMING SOON";
+        List<ChatMessage> history=[new(ChatRole.Tool,[new FunctionResultContent("page",new { Url="https://openplatestudio.com/",Title="OpenPlate",Text=body })])];
+        AIFunction classify=AIFunctionFactory.Create(()=>"decision","classify");
+        AgentRequest route=AgentPrompt.Build(history,[classify],false);
+        Assert.That(string.Join('\n',route.Messages.Select(m=>m.Text)),Does.Not.Contain(body));
+        Assert.That(route.Messages[^1].Text,Does.Contain("no parameters"));
+        Assert.That(route.Messages[0].Text,Does.Not.Contain("\"parameter\":\"value\""));
+        history.Add(new(ChatRole.Tool,[new FunctionResultContent("decision",new { Answers=new[] { "relevant" } })]));
+        Assert.That(string.Join('\n',AgentPrompt.Build(history,[classify],false).Messages.Select(m=>m.Text)),Does.Contain(body));
+    }
+    [Test]
     public void SummaryMustPreserveObservedComingSoonNotice()
     {
         ChatMessage[] history=[new(ChatRole.Tool,[new FunctionResultContent("page",new { Url="https://openplatestudio.com/",Title="Product",Text="COMING SOON enterprise boilerplate",Truncated=false,Links=Array.Empty<object>() })])];
