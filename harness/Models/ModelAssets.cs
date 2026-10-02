@@ -1,0 +1,32 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+
+namespace Harness.Models;
+
+public sealed record ModelAssets(string DirectoryPath, string GraphPath, string TokenizerPath, JsonElement Manifest)
+{
+    public static ModelAssets Load(string directory, string name)
+    {
+        directory = Path.GetFullPath(directory);
+        if (!Directory.Exists(directory)) { throw new DirectoryNotFoundException($"Model directory missing: {directory}. Run scripts/Setup-WebsiteBot.ps1."); }
+        string manifestPath = Path.Combine(directory, "manifest.json");
+        if (!File.Exists(manifestPath)) { throw new FileNotFoundException("Model manifest missing. Run scripts/Setup-WebsiteBot.ps1.", manifestPath); }
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        JsonElement manifest = document.RootElement.Clone();
+        string expectedRepo = name switch { "lfm" => "LiquidAI/LFM2.5-1.2B-Thinking-ONNX", "laya" => "receptron/laya-onnx", _ => throw new ArgumentException("Unknown model", nameof(name)) };
+        if (manifest.GetProperty("name").GetString() != name || manifest.GetProperty("repo").GetString() != expectedRepo) { throw new InvalidDataException("Wrong model identity in manifest."); }
+        foreach (JsonElement file in manifest.GetProperty("files").EnumerateArray())
+        {
+            string path = Path.GetFullPath(Path.Combine(directory, file.GetProperty("path").GetString()!));
+            if (!path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) { throw new InvalidDataException("Unsafe manifest path."); }
+            if (!File.Exists(path)) { throw new FileNotFoundException("Incomplete model bundle", path); }
+            if (new FileInfo(path).Length != file.GetProperty("bytes").GetInt64()) { throw new InvalidDataException($"Wrong file size: {path}"); }
+            using FileStream stream = File.OpenRead(path);
+            if (!Convert.ToHexStringLower(SHA256.HashData(stream)).Equals(file.GetProperty("sha256").GetString(), StringComparison.OrdinalIgnoreCase)) { throw new InvalidDataException($"Checksum mismatch: {path}"); }
+        }
+        string graph = Path.Combine(directory, name == "lfm" ? "onnx/model_q4.onnx" : "laya.onnx");
+        string tokenizer = Path.Combine(directory, name == "lfm" ? "tokenizer.json" : "tokenizer/tokenizer.json");
+        if (!File.Exists(graph) || !File.Exists(tokenizer)) { throw new FileNotFoundException("Required graph/tokenizer missing."); }
+        return new(directory, graph, tokenizer, manifest);
+    }
+}
