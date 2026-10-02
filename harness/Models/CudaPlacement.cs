@@ -6,7 +6,8 @@ public static class CudaPlacement
 {
     public static void Validate(string path)
     {
-        using JsonDocument document=JsonDocument.Parse(File.ReadAllText(path));
+        using FileStream stream=new(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);
+        using JsonDocument document=JsonDocument.Parse(stream);
         bool gpu=false;
         string[] shapeOps=["Shape","Size","Gather","Unsqueeze","Squeeze","Concat","Cast","Add","Mul","Sub","Div","Range","Slice","Reshape","Equal","Where","Expand","ConstantOfShape","Not","Less"];
         foreach (JsonElement entry in document.RootElement.EnumerateArray())

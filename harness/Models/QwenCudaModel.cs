@@ -26,7 +26,7 @@ public sealed class QwenCudaModel : ILocalTextModel
         CudaDependencies.Configure();
         using OrtCUDAProviderOptions cudaOptions=new();
         cudaOptions.UpdateOptions(new Dictionary<string,string> { ["device_id"]="0",["arena_extend_strategy"]="kSameAsRequested",["gpu_mem_limit"]="5368709120",["cudnn_conv_algo_search"]="DEFAULT",["do_copy_in_default_stream"]="1" });
-        using SessionOptions configuration=new() { IntraOpNumThreads=options.Threads,InterOpNumThreads=1,GraphOptimizationLevel=GraphOptimizationLevel.ORT_ENABLE_ALL,EnableProfiling=true,ProfileOutputPathPrefix=Path.Combine(evidencePath,"cuda-prefill") };
+        using SessionOptions configuration=new() { IntraOpNumThreads=options.Threads,InterOpNumThreads=1,GraphOptimizationLevel=GraphOptimizationLevel.ORT_ENABLE_ALL,ProfileOutputPathPrefix=Path.Combine(evidencePath,"cuda-prefill"),EnableProfiling=true };
         configuration.AppendExecutionProvider_CUDA(cudaOptions);
         session=new(assets.GraphPath,configuration);
         tokenizer=new(assets.TokenizerPath);
