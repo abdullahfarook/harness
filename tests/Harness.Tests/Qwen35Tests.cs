@@ -14,9 +14,9 @@ public class Qwen35Tests
         Assert.That(description.Description,Does.Contain("stored").And.Contain("no parameters"));
     }
     [Test]
-    public void CliDefaultsToQwen35AndPreservesModeSpecificPenaltyUnlessOverridden()
+    public void CliRetainsQwen35AndPreservesModeSpecificPenaltyUnlessOverridden()
     {
-        Assert.That(BotOptions.Parse([]).BrainModel,Does.EndWith("website-models/qwen35"));
+        Assert.That(BotOptions.Parse(["--brain","qwen35"]).BrainModel,Does.EndWith("website-models/qwen35"));
         Assert.That(BotOptions.Parse([]).PresencePenalty,Is.Null);
         Assert.That(BotOptions.Parse(["--qwen35-model","custom","--presence-penalty","0"]).BrainModel,Is.EqualTo("custom"));
         Assert.That(BotOptions.Parse(["--presence-penalty","0"]).PresencePenalty,Is.Zero);

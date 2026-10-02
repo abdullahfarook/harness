@@ -16,10 +16,12 @@ public sealed class QwenModel : ILocalTextModel
     private readonly Action<string>? diagnostics;
     private readonly SamplingSettings? sampling;
     private readonly Random random;
+    private readonly int context;
     private readonly SemaphoreSlim gate=new(1,1);
     public string ModelId { get; }
-    public QwenModel(ModelAssets assets,int threads=4,Action<GenerationTiming>? timing=null,Action<string>? diagnostics=null,SamplingSettings? sampling=null,int seed=42)
+    public QwenModel(ModelAssets assets,int threads=4,Action<GenerationTiming>? timing=null,Action<string>? diagnostics=null,SamplingSettings? sampling=null,int seed=42,int context=8192)
     {
+        this.context=context;
         this.timing=timing;
         this.diagnostics=diagnostics;
         this.sampling=sampling; random=new(seed); ModelId=assets.Manifest.GetProperty("repo").GetString()!;
@@ -56,11 +58,11 @@ public sealed class QwenModel : ILocalTextModel
     {
         Stopwatch elapsed=Stopwatch.StartNew();
         int[] initial=tokenizer.Encode(prompt);
-        if (initial.Length+maxTokens>8192) { throw new InvalidDataException("Qwen input and output exceed the application 8192-token budget."); }
+        if (initial.Length+maxTokens>context) { throw new InvalidDataException($"Qwen input and output exceed the application {context}-token budget."); }
         Dictionary<string,NamedOnnxValue> cache=EmptyCache();
         List<int> generated=[];
         IDisposableReadOnlyCollection<DisposableNamedOnnxValue>? previous=null;
-        double prefill=0;
+        double prefill=0,first=0,lastToken=0;
         using RunOptions runOptions=new();
         using CancellationTokenRegistration registration=token.Register(()=>runOptions.Terminate=true);
         try
@@ -80,8 +82,8 @@ public sealed class QwenModel : ILocalTextModel
                 cache.Clear();
                 foreach (DisposableNamedOnnxValue output in outputs) { string name=output.Name.Replace("present.","past_key_values.",StringComparison.Ordinal); if (session.InputMetadata.ContainsKey(name)) { cache[name]=NamedOnnxValue.CreateFromTensor(name,output.AsTensor<float>()); } }
                 previous?.Dispose(); previous=outputs;
-                if (eos.Contains(next)) { string output=tokenizer.Decode(generated); diagnostics?.Invoke(output); timing?.Invoke(new(initial.Length,generated.Count,prefill,elapsed.Elapsed.TotalSeconds)); return output; }
-                generated.Add(next);
+                if (eos.Contains(next)) { string output=tokenizer.Decode(generated); diagnostics?.Invoke(output); timing?.Invoke(new(initial.Length,generated.Count,prefill,elapsed.Elapsed.TotalSeconds,first,lastToken)); return output; }
+                generated.Add(next); lastToken=elapsed.Elapsed.TotalSeconds; if (generated.Count==1) { first=lastToken; }
                 if (step%50==0) { Console.Error.WriteLine($"[Qwen] inputTokens={initial.Length} generatedTokens={generated.Count}"); diagnostics?.Invoke(tokenizer.Decode(generated)); }
             }
             throw new InvalidDataException($"Qwen reached {maxTokens} tokens without EOS; no partial answer accepted.");

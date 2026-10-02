@@ -52,11 +52,11 @@ public class Qwen3Tests
         Assert.That(TokenSampler.Select(logits,[0],new(1,1,1,10),new Random(42)),Is.EqualTo(1));
     }
     [Test]
-    public void Qwen3IsDefaultWithExplicitModeAndSeed()
+    public void Qwen3RemainsAvailableWithExplicitModeAndSeed()
     {
-        Assert.That(BotOptions.Parse([]).BrainModel,Does.EndWith("website-models/qwen35"));
+        Assert.That(BotOptions.Parse(["--brain","qwen3"]).BrainModel,Does.EndWith("website-models/qwen3"));
         Assert.That(BotOptions.Parse([]).Thinking,Is.False);
-        Assert.That(BotOptions.Parse(["--thinking","on","--seed","7"]).Thinking,Is.True);
+        Assert.That(BotOptions.Parse(["--brain","qwen3","--thinking","on","--seed","7"]).Thinking,Is.True);
         Assert.That(BotOptions.Parse(["--seed","7"]).Seed,Is.EqualTo(7));
         Assert.Throws<ArgumentException>(()=>BotOptions.Parse(["--thinking","maybe"]));
     }

@@ -14,8 +14,10 @@ try
     using CancellationTokenSource timeout=new(TimeSpan.FromSeconds(options.TimeoutSeconds));
     Console.CancelKeyPress+=(_,e)=> { e.Cancel=true; timeout.Cancel(); };
     Console.Error.WriteLine("Verifying requested local ONNX models...");
-    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,"qwen35");
-    using Qwen35Model thinking=new(brainAssets,options.Thinking,options.Seed,options.PresencePenalty,timing:value=>evidence.Event("generation_timing",value),diagnostics:value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
+    ModelAssets brainAssets=ModelAssets.Load(options.BrainModel,options.Provider=="genai" ? "qwen-genai" : options.Brain=="qwen" && options.Precision!="q4" ? "qwen-"+options.Precision : options.Brain);
+    using ILocalTextModel thinking=ModelFactory.Create(options,brainAssets,value=>evidence.Event("generation_timing",value),value=>File.WriteAllText(Path.Combine(evidence.DirectoryPath,"generation-diagnostic.txt"),value));
+    evidence.Write("runtime.json",new { options.Brain,options.Provider,options.Precision,options.Threads,options.Context,options.Profile });
+    if (options.ReplayFile is not null) { await SummaryReplay.RunAsync(options,thinking,evidence,whole.Elapsed.TotalSeconds,timeout.Token); evidence.Write("models.json",new { brain=brainAssets.Manifest }); return 0; }
     if (options.Question is not null)
     {
         double startupSeconds=whole.Elapsed.TotalSeconds;
@@ -28,12 +30,12 @@ try
             results.Add(new { trial=i+1,seconds=questionTime.Elapsed.TotalSeconds,answer });
             Console.WriteLine(answer);
         }
-        evidence.Write("question.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=thinking.Sampling,seed=options.Seed,question=options.Question,startupSeconds,results });
-        evidence.Write("models.json",new { qwen35=brainAssets.Manifest });
+        evidence.Write("question.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=ModelFactory.Sampling(options),seed=options.Seed,question=options.Question,startupSeconds,results });
+        evidence.Write("models.json",new { brain=brainAssets.Manifest });
         return 0;
     }
     ModelAssets layaAssets=ModelAssets.Load(options.LayaModel,"laya");
-    evidence.Write("models.json",new { qwen35=brainAssets.Manifest,laya=layaAssets.Manifest });
+    evidence.Write("models.json",new { brain=brainAssets.Manifest,laya=layaAssets.Manifest });
     using LayaDecisionModel quick=new(layaAssets);
     using LocalChatClient client=new(thinking,evidence.Record,options.Thinking ? 4096 : 1536);
     await using BrowserTools browser=new(options.Url,evidence,quick);
@@ -55,7 +57,7 @@ try
     if (browser.LastObservation is null || browser.Classifications==0 || string.IsNullOrWhiteSpace(response.Text)) { throw new InvalidDataException("Incomplete run: require real browser evidence, Laya usage and a nonempty summary."); }
     if (!browser.Visited.Any(url => response.Text.Contains(url,StringComparison.OrdinalIgnoreCase))) { throw new InvalidDataException("Summary is missing observed source URLs."); }
     File.WriteAllText(Path.Combine(evidence.DirectoryPath,"summary.txt"),response.Text);
-    evidence.Write("run.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=thinking.Sampling,seed=options.Seed,target=options.Url.AbsoluteUri,headed=!options.Headless,visited=browser.Visited,layaCalls=browser.Classifications,startupSeconds=startup,liveSeconds=live.Elapsed.TotalSeconds,totalSeconds=whole.Elapsed.TotalSeconds,status="generated-awaiting-grounding-review" });
+    evidence.Write("run.json",new { model=thinking.ModelId,thinking=options.Thinking,sampling=ModelFactory.Sampling(options),seed=options.Seed,target=options.Url.AbsoluteUri,headed=!options.Headless,visited=browser.Visited,layaCalls=browser.Classifications,startupSeconds=startup,liveSeconds=live.Elapsed.TotalSeconds,totalSeconds=whole.Elapsed.TotalSeconds,status="generated-awaiting-grounding-review" });
     Console.WriteLine(response.Text);
     if (!options.Headless && options.KeepOpenSeconds>0) { await Task.Delay(TimeSpan.FromSeconds(options.KeepOpenSeconds),timeout.Token); }
     return 0;

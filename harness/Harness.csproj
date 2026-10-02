@@ -5,10 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseAppHost>false</UseAppHost>
+    <UseCuda Condition="'$(UseCuda)' == ''">true</UseCuda>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.30.0" Condition="'$(UseCuda)' != 'false'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" Condition="'$(UseCuda)' == 'false'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntimeGenAI.Cuda" Version="0.17.1" Condition="'$(UseCuda)' != 'false'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntimeGenAI" Version="0.17.1" Condition="'$(UseCuda)' == 'false'" />
     <PackageReference Include="Microsoft.Agents.AI.Harness" Version="1.23.0" />
     <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
     <PackageReference Include="Tokenizers.HuggingFace" Version="3.23.1" />

@@ -7,7 +7,10 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace Harness.Models;
 
-public sealed record GenerationTiming(int InputTokens,int GeneratedTokens,double PrefillSeconds,double GenerationSeconds);
+public sealed record GenerationTiming(int InputTokens,int GeneratedTokens,double PrefillSeconds,double GenerationSeconds,double FirstTokenSeconds=0,double LastTokenSeconds=0)
+{
+    public double? DecodeTokensPerSecond=>GeneratedTokens>1 && LastTokenSeconds>FirstTokenSeconds ? (GeneratedTokens-1)/(LastTokenSeconds-FirstTokenSeconds) : null;
+}
 
 public sealed class GemmaModel : ILocalTextModel
 {
